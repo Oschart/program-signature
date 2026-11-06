@@ -1,0 +1,40 @@
+{
+    "models": {
+        "Karel-Logsig": {
+            "checkpoint": "checkpoints/KAREL-v2-100k-logsig-unitstep-grid-r0/best_model.pth"
+        },
+        "Karel-LSTM": {
+            "checkpoint": "checkpoints/KAREL-v2-100k-lstm-time-grid-r0/best_model.pth"
+        },
+        "Karel-Transformer": {
+            "checkpoint": "checkpoints/KAREL-v2-100k-trans-grid-r0/best_model.pth"
+        },
+        "Karel-Fourier": {
+            "checkpoint": "checkpoints/KAREL-v2-100k-fourier-m9-noset-grid-r0/best_model.pth"
+        },
+        "List-Logsig": {
+            "checkpoint": "checkpoints/LIST-v2-100k-logsig-unitstep-grid-r0/best_model.pth"
+        },
+        "List-LSTM": {
+            "checkpoint": "checkpoints/LIST-v2-100k-lstm-time-grid-r0/best_model.pth"
+        },
+        "List-Transformer": {
+            "checkpoint": "checkpoints/LIST-v2-100k-trans-grid-r0/best_model.pth"
+        },
+        "List-Fourier": {
+            "checkpoint": "checkpoints/LIST-v2-100k-fourier-m9-noset-grid-r0/best_model.pth"
+        },
+        "RASP-Logsig": {
+            "checkpoint": "checkpoints/rasp_ta_logsig_concat_onehot_fn3_p32_k4_settrans_unitstep_sweep32k_cap32k-r0/best_model.pth"
+        },
+        "RASP-LSTM": {
+            "checkpoint": "checkpoints/rasp_ta_lstm_add_sin_fn3_p256_k4_settrans_wd1_sweep32k_cap32k-r0/best_model.pth"
+        },
+        "RASP-Transformer": {
+            "checkpoint": "checkpoints/rasp_ta_transformer_add_sin_fn3_p256_k4_settrans_sweep32k_cap32k-r0/best_model.pth"
+        },
+        "RASP-Fourier": {
+            "checkpoint": "checkpoints/rasp_ta_fourier_add_sin_m9_fn3_p256_k4_sweep32k_cap32k-r0/best_model.pth"
+        }
+    }
+}

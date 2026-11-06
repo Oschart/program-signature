@@ -1,0 +1,4 @@
+# Settings merged into every run's config (command-line flags take precedence).
+dsl:
+  use_simplified_dsl: false                     # the full token set of each DSL
+  max_program_len: 45                           # minimum length of the program token tensors

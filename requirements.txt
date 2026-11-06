@@ -1,0 +1,14 @@
+torch>=2.1
+numpy>=1.24,<2
+scipy
+h5py
+ply
+pyyaml
+tqdm
+colorlog
+matplotlib
+scikit-learn
+wandb
+
+# Optional
+# pillow       Karel state rendering (karel_env/karel.py: state2image)
