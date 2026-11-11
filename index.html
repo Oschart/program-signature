@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Shape of a Program</title>
+  <meta name="description" content="Path signatures for trace-to-program induction (NeurIPS 2026). A log-signature trace encoder that outperforms LSTM, Transformer, and Fourier encoders on Karel, List, and RASP, especially with little training data.">
+  <meta property="og:title" content="The Shape of a Program: Path Signatures for Trace-to-Program Induction">
+  <meta property="og:description" content="NeurIPS 2026. Encoding execution traces with the path log-signature for program induction.">
+  <style>
+    :root {
+      --ink: #1d1d1f;
+      --muted: #5f6368;
+      --line: #e3e3e6;
+      --soft: #f6f6f8;
+      --accent: #b2222a;   /* the Logsig red used in the paper's plots */
+      --btn: #2b2b2e;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; background: #fff; color: var(--ink); font: 17px/1.65 var(--sans); }
+    main { max-width: 960px; margin: 0 auto; padding: 0 16px 64px; }
+    a { color: var(--accent); }
+    img { max-width: 100%; height: auto; display: block; }
+
+    /* header */
+    header { text-align: center; padding: 56px 0 24px; }
+    .venue { display: inline-block; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+             color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 2px 12px; margin-bottom: 18px; }
+    h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(28px, 5vw, 44px); line-height: 1.2; margin: 0 auto 6px; max-width: 820px; }
+    h1 .sub { display: block; font-size: .62em; font-weight: 400; color: var(--muted); margin-top: 8px; }
+    .authors { font-size: 19px; margin: 22px 0 4px; }
+    .authors span { margin: 0 12px; white-space: nowrap; }
+    .affil { color: var(--muted); font-size: 15px; }
+    .affil span { margin: 0 10px; white-space: nowrap; }
+    .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 26px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; background: var(--btn); color: #fff; text-decoration: none;
+           font-size: 15px; font-weight: 500; padding: 9px 18px; border-radius: 999px; }
+    .btn:hover { background: #000; }
+    .btn svg { width: 17px; height: 17px; fill: currentColor; }
+
+    /* sections */
+    section { margin-top: 56px; }
+    h2 { font-family: var(--serif); font-weight: 600; font-size: 28px; margin: 0 0 16px; }
+    h3 { font-size: 19px; margin: 0 0 8px; line-height: 1.4; }
+    p { margin: 0 0 14px; }
+    .tldr { background: var(--soft); border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; padding: 16px 20px; font-size: 18px; }
+    .tldr b { color: var(--accent); }
+    figure { margin: 22px 0 0; }
+    figcaption { color: var(--muted); font-size: 14.5px; line-height: 1.5; margin-top: 10px; }
+    .teaser { margin-top: 8px; }
+
+    /* method steps */
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px;
+             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .steps li { counter-increment: step; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 15.5px; line-height: 1.55; }
+    .steps li::before { content: counter(step); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+                        background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .eq { font-family: var(--serif); font-size: 21px; text-align: center; margin: 18px 0; overflow-x: auto; white-space: nowrap; }
+    .why { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 22px; }
+    .why > div { background: var(--soft); border-radius: 10px; padding: 16px 18px; font-size: 15.5px; }
+
+    /* findings */
+    .finding { border-top: 1px solid var(--line); padding-top: 28px; margin-top: 28px; }
+    .finding:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+    .tag { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+    .stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin: 18px 0 6px; }
+    .stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+    .stat .num { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+    .stat .lbl { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+    /* table */
+    .table-wrap { overflow-x: auto; margin-top: 18px; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15.5px; font-variant-numeric: tabular-nums; }
+    th, td { padding: 8px 12px; text-align: center; }
+    th:first-child, td:first-child { text-align: left; white-space: nowrap; }
+    thead tr:first-child th { border-bottom: 1px solid var(--line); }
+    thead tr:last-child th { border-bottom: 2px solid var(--ink); font-weight: 600; font-size: 14.5px; }
+    thead tr:first-child th { font-size: 15px; }
+    tbody tr:last-child td { border-bottom: 2px solid var(--ink); }
+    td b { color: var(--accent); }
+
+    /* domains */
+    .domains { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .domains > div { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; font-size: 15.5px; }
+    .domains h3 { margin-bottom: 4px; }
+
+    /* bibtex */
+    .bib { position: relative; }
+    pre { background: var(--soft); border-radius: 10px; padding: 18px 20px; overflow-x: auto; font: 14px/1.6 var(--mono); margin: 0; }
+    .copy { position: absolute; top: 10px; right: 10px; font: 500 13px var(--sans); background: #fff; color: var(--ink);
+            border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+    .copy:hover { border-color: var(--muted); }
+
+    footer { text-align: center; color: var(--muted); font-size: 14px; margin-top: 64px; }
+    code { font-family: var(--mono); font-size: .9em; }
+  </style>
+</head>
+<body>
+<main>
+
+  <header>
+    <div class="venue">NeurIPS 2026</div>
+    <h1>The Shape of a Program
+      <span class="sub">Path Signatures for Trace-to-Program Induction</span></h1>
+    <div class="authors">
+      <span>Mohamed Ghanem<sup>1</sup></span>
+      <span>Bernd Finkbeiner<sup>1,2</sup></span>
+    </div>
+    <div class="affil">
+      <span><sup>1</sup>CISPA Helmholtz Center for Information Security</span>
+      <span><sup>2</sup>Technical University of Munich</span>
+    </div>
+    <div class="links">
+      <a class="btn" href="https://arxiv.org/pdf/2611.13005">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1.5V9h5.5L13 3.5zM8 13h8v1.6H8V13zm0 3.4h8V18H8v-1.6z"/></svg>
+        Paper</a>
+      <a class="btn" href="https://github.com/Oschart/program-signature">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        Code</a>
+      <a class="btn" href="#bibtex">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h3l2-4V7H5v6h3l-2 4zm8 0h3l2-4V7h-6v6h3l-2 4z"/></svg>
+        BibTeX</a>
+    </div>
+  </header>
+
+  <figure class="teaser">
+    <img src="static/images/architecture.png" width="1610" height="830"
+         alt="Architecture: a hidden program is executed from K initial states to produce traces of grid states; each state is embedded by a state encoder, a positional code is added, the embedded states form a path whose log-signature is projected and read by a Transformer decoder that writes the predicted program, trained with cross-entropy against the hidden one.">
+    <figcaption>Executing a hidden program ρ from K initial states gives K traces. A state encoder φ embeds each state and a positional code PE(t) is added, so each trace becomes a path in ℝ<sup>d</sup>. Its log-signature summarizes the path's shape (at level 2, the signed areas between the path and its chord); a linear projection gives the trace embedding h<sub>k</sub>, and a Transformer decoder reads the embeddings to write the program ρ̂, trained with cross-entropy against ρ.</figcaption>
+  </figure>
+
+  <section>
+    <p class="tldr"><b>TL;DR</b> &nbsp;We treat program execution traces as paths and encode them with the <em>log-signature</em>, a parameter-free summary of a path's shape from rough path theory. It is the most accurate trace encoder in 11 of 12 settings across three domains, and its lead is largest when training data is scarce.</p>
+  </section>
+
+  <section id="abstract">
+    <h2>Abstract</h2>
+    <p>Synthesizing programs from execution traces is a fundamental challenge in algorithmic interpretability and the reverse engineering of complex systems. We bring a rough-path-theoretic perspective to program induction, treating execution traces as high-dimensional rough paths and encoding them with the path signature transform, a tool from stochastic analysis whose expectation provably characterizes the distribution of traces a program induces. On three program-induction domains, Karel, List, and RASP, our log-signature trace encoder outperforms LSTM, Transformer, and Fourier baselines in almost every setting, with its largest margins when training data is scarce. We further observe that the trace-to-program pipeline is naturally contractive: it often produces valid programs that are shorter than the ground truth. We turn this into a bootstrapping procedure that exposes redundancy in the ground-truth supervision without any external oracle, which we demonstrate on redundancy-injected versions of our datasets. Finally, the log-signature encoder induces a markedly more interpretable latent geometry than the baselines, in which the nearest neighbors of every state lie on its own execution trace.</p>
+  </section>
+
+  <section id="method">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li><b>Run.</b> The hidden program is executed from several initial states, giving a set of execution traces (sequences of states).</li>
+      <li><b>Embed.</b> A state encoder φ maps every state to a point in ℝ<sup>d</sup>. Each step between points is rescaled to unit length and a sinusoidal positional code is added, so each trace becomes a path.</li>
+      <li><b>Summarize.</b> The truncated log-signature (level 2) turns each path into a fixed-size vector, whatever its length. A linear projection is the encoder's only trainable part.</li>
+      <li><b>Decode.</b> A Transformer decoder attends over the trace embeddings and writes the program token by token. Grammar masking keeps every output syntactically valid.</li>
+    </ol>
+
+    <div class="why">
+      <div>
+        <h3>A program is pinned down by its traces</h3>
+        Running a program from random initial states induces a distribution over traces. For bounded-length traces such as ours, the <em>expected signature</em> uniquely determines this distribution (Chevyrev &amp; Lyons, 2016), so averaging signatures over executions estimates an object that identifies the program up to behavior.
+      </div>
+      <div>
+        <h3>Signatures compose like executions</h3>
+        By Chen's identity, the signature of a path split at any time <i>t</i> is the tensor product of the signatures of its two pieces:
+        <div class="eq">S(X<sub>[0,T]</sub>) = S(X<sub>[0,t]</sub>) ⊗ S(X<sub>[t,T]</sub>)</div>
+        Executions that share a segment, such as the same loop body or the same subroutine, share a signature factor.
+      </div>
+    </div>
+  </section>
+
+  <section id="domains">
+    <h2>Domains</h2>
+    <div class="domains">
+      <div>
+        <h3>Karel</h3>
+        A robot in a 2D grid world with walls and markers. Stands in for visual and spatial domains: robot control, tile puzzles, agent navigation.
+      </div>
+      <div>
+        <h3>List</h3>
+        Symbolic manipulation of a variable-length integer list through a cursor. Stands in for array and string tasks: sorting, searching, counting.
+      </div>
+      <div>
+        <h3>RASP</h3>
+        Maps, shifts, thresholds and counts over token sequences, from the language of Transformer computations. Stands in for functional sequence-to-sequence programs.
+      </div>
+    </div>
+    <p style="margin-top:14px">A decoded program counts as correct if, run from the same initial states, it reproduces every given trace. We call the share of correct test programs <em>semantic accuracy</em>.</p>
+  </section>
+
+  <section id="highlights">
+    <h2>Highlights</h2>
+
+    <div class="finding">
+      <span class="tag">Finding 1</span>
+      <h3>The log-signature encoder outperforms the LSTM, Transformer, and Fourier baselines in almost every setting, with its largest margins when training data is scarce.</h3>
+      <div class="stats">
+        <div class="stat"><div class="num">11 / 12</div><div class="lbl">(domain, training data volume) settings where log-signature is the most accurate encoder</div></div>
+        <div class="stat"><div class="num">+0.22</div><div class="lbl">lead on Karel with 25% of the data (0.35 vs 0.13); +0.09 on List, +0.18 on RASP</div></div>
+        <div class="stat"><div class="num">½</div><div class="lbl">the features of the full signature, at nearly the same accuracy on all three domains</div></div>
+      </div>
+      <figure>
+        <img src="static/images/data_efficiency.png" width="1650" height="630"
+             alt="Line plots of semantic accuracy against training data volume for Karel, List, and RASP. The log-signature curve is highest at all points except Karel at full volume.">
+        <figcaption>Test semantic accuracy against training data volume, as a percentage of each domain's full training set (100K programs for Karel and List, 32K for RASP; log scale). Each point is the best epoch, averaged over 3 seeds; shading is ±1 standard deviation. The one exception is Karel at full volume, where the Transformer (0.679) and LSTM (0.669) lead the log-signature encoder (0.647).</figcaption>
+      </figure>
+    </div>
+
+    <div class="finding">
+      <span class="tag">Finding 2</span>
+      <h3>Bootstrapping exposes substantial redundancy in the ground-truth supervision, with no external oracle required.</h3>
+      <p>The trace-to-program pipeline is <em>contractive</em>: the model often outputs a program that is shorter than the ground truth yet reproduces every trace. We replace a training label whenever the model finds such a strictly shorter, verified program, and repeat. What this removes is a lower bound on how much shorter the supervision could have been. Our datasets hold little such redundancy (on Karel and List, a greedy search over trace-preserving local edits removes only 4.5% and 5.2% of the tokens), so we measure it on redundancy-injected copies, Karel<sup>+</sup>, List<sup>+</sup> and RASP<sup>+</sup>: half of each set's programs are rewritten with extra structure that leaves every trace unchanged, such as <code>S</code> → <code>REPEAT 1 (S)</code>, which adds about 20% of the tokens. Every encoder removes a substantial share, so contractivity is better understood as a property of the trace-to-program pipeline than of any one encoder.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th></th><th colspan="2">Karel<sup>+</sup></th><th colspan="2">List<sup>+</sup></th><th colspan="2">RASP<sup>+</sup></th></tr>
+            <tr><th>Encoder</th><th>Tokens removed</th><th>Programs shortened</th><th>Tokens removed</th><th>Programs shortened</th><th>Tokens removed</th><th>Programs shortened</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>LSTM</td><td><b>21.11%</b></td><td><b>58.66%</b></td><td>22.37%</td><td>59.42%</td><td>13.41%</td><td>32.33%</td></tr>
+            <tr><td>Transformer</td><td>20.92%</td><td>57.81%</td><td>22.58%</td><td>59.82%</td><td>18.26%</td><td>44.08%</td></tr>
+            <tr><td>Fourier</td><td>18.43%</td><td>52.89%</td><td>18.19%</td><td>49.62%</td><td>18.64%</td><td>44.98%</td></tr>
+            <tr><td>Log-Signature</td><td>21.07%</td><td>58.59%</td><td><b>22.70%</b></td><td><b>59.88%</b></td><td><b>19.84%</b></td><td><b>47.92%</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <figcaption>Share of all training-label tokens removed, and share of training labels shortened at least once, on the redundancy-injected datasets.</figcaption>
+    </div>
+
+    <div class="finding">
+      <span class="tag">Finding 3</span>
+      <h3>The log-signature encoder induces a more interpretable latent geometry.</h3>
+      <p>For the log-signature model, the embedded states of each trace form a separate chain; for the baselines, the traces of different programs run alongside and across one another. Measured over 20 test programs, the five nearest neighbors of every log-signature state lie on its own trace, on all three domains.</p>
+      <figure>
+        <img src="static/images/tsne_karel.png" width="1606" height="471"
+             alt="Four t-SNE panels (Logsig, LSTM, Transformer, Fourier) of embedded Karel traces for five programs. The log-signature traces are short separate segments; the baseline traces overlap and cross.">
+        <figcaption>t-SNE of the embedded traces each encoder reads on Karel, for five test programs with six traces each. Each line is one trace, its points are the trace's states in order, and the traces of a program share a color. For a common view, the state embeddings of all four encoders are normalized to unit-length steps before the positional code is added. Each panel is a separate t-SNE fit.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="bibtex">
+    <h2>BibTeX</h2>
+    <div class="bib">
+      <button class="copy" type="button">Copy</button>
+<pre id="bibtex-text">@inproceedings{ghanem2026shape,
+  title     = {The Shape of a Program: Path Signatures for Trace-to-Program Induction},
+  author    = {Ghanem, Mohamed and Finkbeiner, Bernd},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2026}
+}</pre>
+    </div>
+  </section>
+
+  <footer>CISPA Helmholtz Center for Information Security &middot; Technical University of Munich</footer>
+</main>
+<script>
+  document.querySelector('.copy').addEventListener('click', function () {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById('bibtex-text').textContent).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+    });
+  });
+</script>
+</body>
+</html>
